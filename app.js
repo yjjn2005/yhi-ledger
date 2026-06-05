@@ -90,6 +90,38 @@ function showView(v){
 document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click', ()=>showView(t.dataset.view)));
 document.getElementById('settingsBtn').addEventListener('click', ()=>showView('settings'));
 
+// ---------- 가계부 이름 변경 ----------
+function getLedgerName(){
+  return (DATA.meta && DATA.meta.ledgerName) ? DATA.meta.ledgerName : 'YHI';
+}
+function applyLedgerName(){
+  const n = getLedgerName();
+  document.title = n + '가계부';
+  document.getElementById('brandMark').textContent = n.charAt(0).toUpperCase();
+  document.getElementById('brandTitle').textContent = n + '가계부';
+  document.getElementById('heroEyebrow').textContent = n + ' 가계부 · 마스터 대시보드';
+  document.getElementById('heroTitle').innerHTML = escape(n) + ' <span class="accent">가계부</span>';
+  document.getElementById('footerMark').textContent = n + '가계부 · 2026';
+  const inp = document.getElementById('ledgerNameInput');
+  if(inp && document.activeElement !== inp) inp.value = n;
+}
+function setLedgerName(name){
+  name = (name||'').trim();
+  if(!name){ toast('이름을 입력하세요', 'err'); return false; }
+  if(name.length > 12){ toast('이름은 12자 이내로 입력하세요', 'err'); return false; }
+  DATA.meta.ledgerName = name;
+  saveData();
+  applyLedgerName();
+  toast(`가계부 이름이 '${name}가계부'로 변경되었습니다`, 'ok');
+  return true;
+}
+document.getElementById('btnSetName').addEventListener('click', ()=>{
+  setLedgerName(document.getElementById('ledgerNameInput').value);
+});
+document.getElementById('ledgerNameInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('btnSetName').click(); }
+});
+
 // ---------- 집계 ----------
 function aggregate(filters){
   filters = filters || {};
@@ -473,6 +505,7 @@ document.getElementById('btnDelete').addEventListener('click', ()=>{
 
 // ---------- 전체 리렌더 ----------
 function rerenderAll(){
+  applyLedgerName();
   buildSelectOptions();
   renderDash();
   renderMonthly();
@@ -1082,6 +1115,7 @@ function renderScanRecent(){
 }
 
 // ---------- 초기 부트 ----------
+applyLedgerName();
 buildSelectOptions();
 bindFilters();
 renderDash();

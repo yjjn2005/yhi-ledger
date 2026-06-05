@@ -4,6 +4,7 @@ window.INITIAL_DATA = {
   updatedAt: "",
   nextId: 1,
   meta: {
+    ledgerName: "YHI",
     categories: [
       "식비","카페·간식","교통","주거·관리비","통신",
       "쇼핑·생활","문화·여가","교육","의료·건강","경조사·선물",

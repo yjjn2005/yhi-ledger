@@ -332,9 +332,9 @@ input[type="file"]{display:none}
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <div class="brand-mark">Y</div>
+      <div class="brand-mark" id="brandMark">Y</div>
       <div class="brand-text">
-        <div class="brand-title">YHI가계부</div>
+        <div class="brand-title" id="brandTitle">YHI가계부</div>
         <div class="brand-sub">Our Ledger</div>
       </div>
     </div>
@@ -358,8 +358,8 @@ input[type="file"]{display:none}
 <!-- ===== DASHBOARD ===== -->
 <section class="view active" id="view-dash">
   <div class="hero">
-    <div class="hero-eyebrow">YHI 가계부 · 마스터 대시보드</div>
-    <h1 class="serif">YHI <span class="accent">가계부</span></h1>
+    <div class="hero-eyebrow" id="heroEyebrow">YHI 가계부 · 마스터 대시보드</div>
+    <h1 class="serif" id="heroTitle">YHI <span class="accent">가계부</span></h1>
     <p class="hero-lede">부부 공동 가계부 — 두 사람의 수입·지출·이체를 한곳에서. 매월 자동 집계, 카테고리별 상세 분석. 럭셔리하고 우아한 재정 큐레이션.</p>
     <div class="hero-meta">
       <span>업데이트 <b id="updatedDate">-</b></span>
@@ -531,7 +531,16 @@ input[type="file"]{display:none}
 <!-- ===== SETTINGS ===== -->
 <section class="view" id="view-settings">
   <div class="section">
-    <div class="section-head"><div><h2 class="section-title">설정 · 동기화 · 백업</h2><div class="section-desc">기기 간 자동 연동 · 백업·복원</div></div></div>
+    <div class="section-head"><div><h2 class="section-title">설정 · 동기화 · 백업</h2><div class="section-desc">가계부 이름 변경 · 기기 간 자동 연동 · 백업·복원</div></div></div>
+
+    <div class="settings-card">
+      <h3>✏️ 가계부 이름 변경</h3>
+      <p>이니셜이나 이름을 입력하면 가계부 제목 전체가 바뀝니다. 예: <b>YTH</b> → "YTH가계부", <b>홍길동</b> → "홍길동가계부". 이 기기에 저장되며 동기화 사용 시 다른 기기에도 반영됩니다.</p>
+      <div class="settings-actions">
+        <input type="text" id="ledgerNameInput" maxlength="12" placeholder="예: YTH 또는 이름" style="padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-soft);font-family:inherit;font-size:14px;min-width:200px">
+        <button class="btn btn-primary" id="btnSetName">✏️ 이름 변경</button>
+      </div>
+    </div>
 
     <div class="settings-card" id="cloudSyncCard">
       <h3>☁️ 자동 클라우드 동기화 <span id="syncStateBadge" class="sync-badge off">OFF</span></h3>
@@ -614,7 +623,7 @@ input[type="file"]{display:none}
 </main>
 
 <footer class="footer">
-  <div class="footer-mark">YHI가계부 · 2026</div>
+  <div class="footer-mark" id="footerMark">YHI가계부 · 2026</div>
   <div class="footer-sub">CRAFTED WITH PRECISION</div>
 </footer>
 
