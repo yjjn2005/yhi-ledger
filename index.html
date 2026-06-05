@@ -136,7 +136,7 @@ body{
 .tx-count{font-size:12px;color:var(--text-muted);margin-left:auto;font-weight:600}
 
 .tx-list{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border-soft);overflow:hidden;box-shadow:var(--shadow-sm)}
-.tx-row{display:grid;grid-template-columns:88px 1fr 110px 100px 130px;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border-soft);align-items:center;cursor:pointer;transition:background .12s}
+.tx-row{display:grid;grid-template-columns:88px 1fr 110px 130px;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border-soft);align-items:center;cursor:pointer;transition:background .12s}
 .tx-row:hover{background:var(--surface-2)}
 .tx-row:last-child{border-bottom:none}
 .tx-date{font-size:12px;color:var(--text-muted);font-weight:600;letter-spacing:.02em}
@@ -145,7 +145,6 @@ body{
 .tx-body .meta{font-size:11.5px;color:var(--text-muted);margin-top:3px;display:flex;gap:8px;align-items:center}
 .tx-body .meta .dot{width:4px;height:4px;border-radius:50%;background:var(--text-light)}
 .tx-method{font-size:12px;color:var(--text-muted);text-align:right}
-.tx-user{font-size:12px;font-weight:600;color:var(--navy);text-align:right}
 .tx-amt{font-size:14.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;font-family:'Noto Serif KR'}
 .tx-amt.inc{color:var(--inc)}
 .tx-amt.exp{color:var(--exp)}
@@ -157,7 +156,7 @@ body{
 
 @media(max-width:760px){
   .tx-row{grid-template-columns:62px 1fr auto;gap:10px;padding:12px 14px}
-  .tx-method, .tx-user{display:none}
+  .tx-method{display:none}
   .tx-body .meta{flex-wrap:wrap}
   .tx-body .meta::after{content:attr(data-extra);display:inline}
 }
@@ -183,10 +182,11 @@ body{
 .mem-row.exp b{color:var(--exp)}
 .mem-row.bal b{color:var(--navy);font-family:'Noto Serif KR';font-size:16px}
 
-/* ── USER CHIPS (구성원 관리) ── */
-.user-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);font-size:13.5px;font-weight:700;color:var(--navy)}
-.user-chip button{border:none;background:transparent;color:var(--text-light);cursor:pointer;font-size:13px;padding:0;line-height:1}
-.user-chip button:hover{color:var(--burgundy)}
+/* ── QUICK INPUT BUTTONS ── */
+.quick-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.qbtn{padding:7px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--navy);transition:.15s}
+.qbtn:hover{border-color:var(--gold);background:var(--bg-soft);transform:translateY(-1px)}
+.qbtn.clear{color:var(--burgundy)}
 
 /* ── SETTINGS ── */
 .settings-card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border-soft);padding:26px;margin-bottom:16px;box-shadow:var(--shadow-sm)}
@@ -335,7 +335,7 @@ input[type="file"]{display:none}
       <div class="brand-mark">Y</div>
       <div class="brand-text">
         <div class="brand-title">YHI가계부</div>
-        <div class="brand-sub">My Ledger</div>
+        <div class="brand-sub">Our Ledger</div>
       </div>
     </div>
     <div class="top-actions">
@@ -348,7 +348,6 @@ input[type="file"]{display:none}
     <button class="nav-tab" data-view="monthly"><span class="ico">📅</span>월별</button>
     <button class="nav-tab" data-view="txlist"><span class="ico">📋</span>거래내역</button>
     <button class="nav-tab" data-view="category"><span class="ico">🏷</span>카테고리</button>
-    <button class="nav-tab" data-view="member"><span class="ico">👥</span>구성원별</button>
     <button class="nav-tab" data-view="input"><span class="ico">➕</span>입력·업로드</button>
     <button class="nav-tab" data-view="settings"><span class="ico">⚙</span>설정·동기화</button>
   </nav>
@@ -361,7 +360,7 @@ input[type="file"]{display:none}
   <div class="hero">
     <div class="hero-eyebrow">YHI 가계부 · 마스터 대시보드</div>
     <h1 class="serif">YHI <span class="accent">가계부</span></h1>
-    <p class="hero-lede">나만의 가계부 — 설정에서 자신의 이니셜을 추가하고 시작하세요. 매월 수입·지출·이체 자동 집계, 카테고리·구성원별 상세 분석. 럭셔리하고 우아한 재정 큐레이션.</p>
+    <p class="hero-lede">부부 공동 가계부 — 두 사람의 수입·지출·이체를 한곳에서. 매월 자동 집계, 카테고리별 상세 분석. 럭셔리하고 우아한 재정 큐레이션.</p>
     <div class="hero-meta">
       <span>업데이트 <b id="updatedDate">-</b></span>
       <span>거래 <b id="totalCnt">0</b>건</span>
@@ -409,7 +408,6 @@ input[type="file"]{display:none}
           <option value="지출">지출</option>
           <option value="이체">이체</option>
         </select>
-        <select id="txFilterUser"><option value="all">전체 구성원</option></select>
         <select id="txFilterCat"><option value="all">전체 카테고리</option></select>
         <input type="text" id="txFilterText" placeholder="설명·메모 검색…">
         <div class="tx-count" id="txCount">-</div>
@@ -435,19 +433,6 @@ input[type="file"]{display:none}
         </select>
       </div>
       <div id="catList"></div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== MEMBER ===== -->
-<section class="view" id="view-member">
-  <div class="section">
-    <div class="section-head"><div><h2 class="section-title">구성원별 분석</h2><div class="section-desc">이니셜별 수입·지출 — 설정에서 이니셜을 추가하세요</div></div></div>
-    <div class="panel">
-      <div class="tx-toolbar" style="margin-bottom:20px">
-        <select id="memFilterMonth"><option value="all">전체 기간</option></select>
-      </div>
-      <div class="mem-grid" id="memGrid"></div>
     </div>
   </div>
 </section>
@@ -530,10 +515,9 @@ input[type="file"]{display:none}
             <div class="field"><label>금액</label><input type="text" id="sAmount" inputmode="numeric" placeholder="0"></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>구성원 (이니셜)</label><select id="sUser"></select></div>
             <div class="field"><label>카테고리</label><select id="sCat"></select></div>
+            <div class="field"><label>결제수단</label><select id="sMethod"></select></div>
           </div>
-          <div class="field"><label>결제수단</label><select id="sMethod"></select></div>
           <div class="field"><label>설명</label><input type="text" id="sDesc" placeholder="예: 카드 결제"></div>
           <div class="field"><label>메모 (선택)</label><input type="text" id="sMemo"></div>
           <button class="btn btn-add" id="btnScanAdd" style="width:100%;justify-content:center;padding:14px">＋ 이 건 추가하기</button>
@@ -547,17 +531,7 @@ input[type="file"]{display:none}
 <!-- ===== SETTINGS ===== -->
 <section class="view" id="view-settings">
   <div class="section">
-    <div class="section-head"><div><h2 class="section-title">설정 · 동기화 · 백업</h2><div class="section-desc">구성원(이니셜) 관리 · 기기 간 자동 연동 · 백업·복원</div></div></div>
-
-    <div class="settings-card">
-      <h3>👥 구성원(이니셜) 관리</h3>
-      <p>자신의 이니셜(예: <b>YHI</b>)을 직접 입력해 추가하세요. 여러 명이 함께 쓰면 각자 이니셜을 추가해 구성원별로 분석됩니다.</p>
-      <div id="userChipList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
-      <div class="settings-actions">
-        <input type="text" id="newUserInput" placeholder="이니셜 입력 (예: YHI)" maxlength="20" style="padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-soft);font-family:inherit;font-size:14px;min-width:200px">
-        <button class="btn btn-primary" id="btnAddUser">＋ 이니셜 추가</button>
-      </div>
-    </div>
+    <div class="section-head"><div><h2 class="section-title">설정 · 동기화 · 백업</h2><div class="section-desc">기기 간 자동 연동 · 백업·복원</div></div></div>
 
     <div class="settings-card" id="cloudSyncCard">
       <h3>☁️ 자동 클라우드 동기화 <span id="syncStateBadge" class="sync-badge off">OFF</span></h3>
@@ -624,7 +598,7 @@ input[type="file"]{display:none}
 
     <div class="settings-card">
       <h3>🗂 데이터 초기화</h3>
-      <p>모든 거래와 구성원을 삭제하고 빈 가계부 상태로 되돌립니다.</p>
+      <p>모든 거래를 삭제하고 빈 가계부 상태로 되돌립니다.</p>
       <div class="settings-actions">
         <button class="btn btn-danger" id="btnReset">⟳ 빈 가계부로 초기화</button>
       </div>
@@ -666,11 +640,21 @@ input[type="file"]{display:none}
         <div class="field"><label>날짜</label><input type="date" id="fDate"></div>
         <div class="field"><label>금액</label><input type="text" id="fAmount" inputmode="numeric" placeholder="0"></div>
       </div>
-      <div class="field-row">
-        <div class="field"><label>구성원 (이니셜)</label><select id="fUser"></select></div>
-        <div class="field"><label>카테고리</label><select id="fCat"></select></div>
+      <div class="quick-btns" style="margin:-4px 0 16px">
+        <button type="button" class="qbtn" data-qdate="0">📅 오늘</button>
+        <button type="button" class="qbtn" data-qdate="-1">어제</button>
+        <span style="width:6px"></span>
+        <button type="button" class="qbtn" data-qamt="1000">＋1천</button>
+        <button type="button" class="qbtn" data-qamt="5000">＋5천</button>
+        <button type="button" class="qbtn" data-qamt="10000">＋1만</button>
+        <button type="button" class="qbtn" data-qamt="50000">＋5만</button>
+        <button type="button" class="qbtn" data-qamt="100000">＋10만</button>
+        <button type="button" class="qbtn clear" data-qamt="0">지움</button>
       </div>
-      <div class="field"><label>결제수단</label><select id="fMethod"></select></div>
+      <div class="field-row">
+        <div class="field"><label>카테고리</label><select id="fCat"></select></div>
+        <div class="field"><label>결제수단</label><select id="fMethod"></select></div>
+      </div>
       <div class="field"><label>설명</label><input type="text" id="fDesc" placeholder="예: 편의점"></div>
       <div class="field"><label>메모 (선택)</label><textarea id="fMemo" placeholder="추가 설명…"></textarea></div>
     </div>
@@ -678,6 +662,7 @@ input[type="file"]{display:none}
       <div class="modal-foot-left"><button class="btn btn-danger" id="btnDelete" style="display:none">삭제</button></div>
       <div class="modal-foot-right">
         <button class="btn btn-ghost" id="modalCancel">취소</button>
+        <button class="btn btn-add" id="modalSaveContinue">＋ 저장 후 계속</button>
         <button class="btn btn-primary" id="modalSave">저장</button>
       </div>
     </div>

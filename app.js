@@ -1,10 +1,11 @@
-/* YHI가계부 — 앱 로직
-   - 빈 가계부에서 시작, 구성원(이니셜) 직접 추가
+/* YHI가계부 — 앱 로직 (부부 공동 가계부)
+   - 빈 가계부에서 시작
+   - 빠른 입력 버튼 (오늘/어제, 금액 증액, 저장 후 계속)
    - localStorage 자동 저장
    - 거래 추가/수정/삭제 모달
-   - 월/유형/구성원/카테고리/검색 필터
+   - 월/유형/카테고리/검색 필터
    - 페이지네이션
-   - 대시보드 · 월별 · 카테고리 · 구성원 자동 렌더
+   - 대시보드 · 월별 · 카테고리 자동 렌더
    - GitHub Gist 자동 클라우드 동기화
    - JSON 내보내기/가져오기
 */
@@ -89,68 +90,6 @@ function showView(v){
 document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click', ()=>showView(t.dataset.view)));
 document.getElementById('settingsBtn').addEventListener('click', ()=>showView('settings'));
 
-// ---------- 구성원(이니셜) 관리 ----------
-function addUser(name){
-  name = (name||'').trim();
-  if(!name){ toast('이니셜을 입력하세요', 'err'); return false; }
-  if(name==='__add__'){ toast('사용할 수 없는 이름입니다', 'err'); return false; }
-  if(DATA.meta.users.includes(name)){ toast('이미 등록된 이니셜입니다', 'err'); return false; }
-  DATA.meta.users.push(name);
-  saveData();
-  rerenderAll();
-  toast(`'${name}' 이니셜이 추가되었습니다`, 'ok');
-  return true;
-}
-function removeUser(name){
-  if(!confirm(`'${name}' 이니셜을 삭제할까요?\n(해당 구성원의 기존 거래 기록은 유지됩니다)`)) return;
-  DATA.meta.users = DATA.meta.users.filter(u=>u!==name);
-  saveData();
-  rerenderAll();
-  toast(`'${name}' 삭제됨`, 'ok');
-}
-function renderUserManage(){
-  const cont = document.getElementById('userChipList');
-  if(!cont) return;
-  if(!DATA.meta.users.length){
-    cont.innerHTML = '<span style="color:var(--text-muted);font-size:13px">아직 구성원이 없습니다 — 아래에 자신의 이니셜을 입력해 추가하세요</span>';
-    return;
-  }
-  cont.innerHTML = DATA.meta.users.map(u=>
-    `<span class="user-chip">${escape(u)}<button data-del-user="${escape(u)}" title="삭제">✕</button></span>`
-  ).join('');
-  cont.querySelectorAll('[data-del-user]').forEach(b=>{
-    b.addEventListener('click', ()=>removeUser(b.dataset.delUser));
-  });
-}
-function ensureUsers(){
-  if(DATA.meta.users.length) return true;
-  const n = prompt('먼저 사용할 이니셜을 입력하세요 (예: YHI)');
-  if(n===null) return false;
-  return addUser(n);
-}
-document.getElementById('btnAddUser').addEventListener('click', ()=>{
-  const inp = document.getElementById('newUserInput');
-  if(addUser(inp.value)) inp.value = '';
-});
-document.getElementById('newUserInput').addEventListener('keydown', e=>{
-  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('btnAddUser').click(); }
-});
-// 구성원 select에서 "＋ 이니셜 추가…" 선택 시
-['fUser','sUser'].forEach(id=>{
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.addEventListener('change', e=>{
-    if(e.target.value==='__add__'){
-      const n = prompt('새 이니셜을 입력하세요 (예: YHI)');
-      if(n && addUser(n)){
-        e.target.value = n.trim();
-      } else {
-        e.target.value = DATA.meta.users[0] || '__add__';
-      }
-    }
-  });
-});
-
 // ---------- 집계 ----------
 function aggregate(filters){
   filters = filters || {};
@@ -197,18 +136,6 @@ function categoryAgg(filters){
     c[k].cnt += 1;
   });
   return Object.entries(c).map(([cat,v])=>({cat, ...v})).sort((a,b)=>b.amount-a.amount);
-}
-
-function memberAgg(month){
-  const m = {};
-  DATA.meta.users.forEach(u=>m[u] = {inc:0,exp:0,trf:0,cnt:0});
-  DATA.transactions.forEach(t=>{
-    if(month && month!=='all' && getMonth(t.date)!==month) return;
-    if(!m[t.user]) m[t.user] = {inc:0,exp:0,trf:0,cnt:0};
-    m[t.user][typeKey(t.type)] += t.amount;
-    m[t.user].cnt += 1;
-  });
-  return m;
 }
 
 // ---------- 렌더: 대시보드 ----------
@@ -307,23 +234,18 @@ let txFilters = {month:'all', type:'all', user:'all', cat:'all', text:''};
 
 function buildSelectOptions(){
   const months = [...new Set(DATA.transactions.map(t=>getMonth(t.date)))].sort();
-  const mSel = ['txFilterMonth','catFilterMonth','memFilterMonth'];
+  const mSel = ['txFilterMonth','catFilterMonth'];
   mSel.forEach(id=>{
     const s = document.getElementById(id);
     if(!s) return;
     const cur = s.value;
-    s.innerHTML = `<option value="all">${id==='catFilterMonth'||id==='memFilterMonth'?'전체 기간':'전체 월'}</option>` +
+    s.innerHTML = `<option value="all">${id==='catFilterMonth'?'전체 기간':'전체 월'}</option>` +
       months.map(m=>`<option value="${m}">${m}</option>`).join('');
     s.value = cur || 'all';
   });
-  const uSel = document.getElementById('txFilterUser');
-  uSel.innerHTML = '<option value="all">전체 구성원</option>' + DATA.meta.users.map(u=>`<option value="${u}">${escape(u)}</option>`).join('');
   const cSel = document.getElementById('txFilterCat');
   cSel.innerHTML = '<option value="all">전체 카테고리</option>' + DATA.meta.categories.map(c=>`<option value="${c}">${escape(c)}</option>`).join('');
-  // modal selects — 구성원에는 "이니셜 추가" 옵션 포함
-  const userOpts = DATA.meta.users.map(u=>`<option value="${u}">${escape(u)}</option>`).join('') + '<option value="__add__">＋ 이니셜 추가…</option>';
-  document.getElementById('fUser').innerHTML = userOpts;
-  document.getElementById('sUser').innerHTML = userOpts;
+  // modal selects
   document.getElementById('fCat').innerHTML = DATA.meta.categories.map(c=>`<option value="${c}">${escape(c)}</option>`).join('');
   document.getElementById('fMethod').innerHTML = DATA.meta.methods.map(m=>`<option value="${m}">${escape(m)}</option>`).join('');
 }
@@ -353,7 +275,6 @@ function renderTxList(){
         </div>
       </div>
       <div class="tx-method">${escape(t.method||'-')}</div>
-      <div class="tx-user">${escape(t.user||'-')}</div>
       <div class="tx-amt ${k}">${sign(t.type)}${fmtKRW(t.amount)}원</div>
     </div>`;
   }).join('') || '<div class="empty">조건에 맞는 거래가 없습니다</div>';
@@ -390,7 +311,7 @@ function filterTx(){
   txFilters = {
     month: document.getElementById('txFilterMonth').value,
     type: document.getElementById('txFilterType').value,
-    user: document.getElementById('txFilterUser').value,
+    user: 'all',
     cat: document.getElementById('txFilterCat').value,
     text: document.getElementById('txFilterText').value.trim()
   };
@@ -418,34 +339,11 @@ function renderCategory(){
   }).join('');
 }
 
-// ---------- 렌더: 구성원 ----------
-function renderMember(){
-  const month = document.getElementById('memFilterMonth').value;
-  const m = memberAgg(month);
-  const entries = Object.entries(m);
-  if(!entries.length){
-    document.getElementById('memGrid').innerHTML = '<div class="empty">구성원이 없습니다 — 설정에서 이니셜을 추가하세요</div>';
-    return;
-  }
-  document.getElementById('memGrid').innerHTML = entries.map(([user, v])=>{
-    const bal = v.inc - v.exp;
-    return `<div class="mem-card">
-      <h3>${escape(user)}</h3>
-      <div class="mem-cnt">거래 ${v.cnt}건</div>
-      <div class="mem-row inc"><span>수입</span><b>+${fmtKRW(v.inc)}원</b></div>
-      <div class="mem-row exp"><span>지출</span><b>-${fmtKRW(v.exp)}원</b></div>
-      <div class="mem-row"><span>이체</span><b>${fmtKRW(v.trf)}원</b></div>
-      <div class="mem-row bal"><span>순익</span><b style="color:${bal>=0?'var(--inc)':'var(--exp)'}">${bal>=0?'+':''}${fmtKRW(bal)}원</b></div>
-    </div>`;
-  }).join('');
-}
-
 // ---------- 편집 모달 ----------
 let editingId = null;
 let modalType = '지출';
 
 function openEditModal(id){
-  if(!id && !ensureUsers()) return;
   editingId = id;
   if(id){
     const t = DATA.transactions.find(x=>x.id===id);
@@ -455,24 +353,24 @@ function openEditModal(id){
     document.getElementById('modalSub').textContent = t.date + ' · ' + (t.desc||'');
     document.getElementById('fDate').value = t.date;
     document.getElementById('fAmount').value = t.amount.toLocaleString();
-    document.getElementById('fUser').value = t.user;
     document.getElementById('fCat').value = t.cat;
     document.getElementById('fMethod').value = t.method;
     document.getElementById('fDesc').value = t.desc || '';
     document.getElementById('fMemo').value = t.memo || '';
     document.getElementById('btnDelete').style.display = 'inline-flex';
+    document.getElementById('modalSaveContinue').style.display = 'none';
   } else {
     modalType = '지출';
     document.getElementById('modalTitle').textContent = '새 거래 추가';
     document.getElementById('modalSub').textContent = '날짜와 금액을 입력하세요';
     document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
     document.getElementById('fAmount').value = '';
-    document.getElementById('fUser').value = DATA.meta.users[0];
     document.getElementById('fCat').value = DATA.meta.categories[0];
     document.getElementById('fMethod').value = DATA.meta.methods[0];
     document.getElementById('fDesc').value = '';
     document.getElementById('fMemo').value = '';
     document.getElementById('btnDelete').style.display = 'none';
+    document.getElementById('modalSaveContinue').style.display = 'inline-flex';
   }
   updateTypePicker();
   document.getElementById('modalBg').classList.add('active');
@@ -503,21 +401,39 @@ document.getElementById('fAmount').addEventListener('input', e=>{
 
 document.getElementById('fabAdd').addEventListener('click', ()=>openEditModal(null));
 
-document.getElementById('modalSave').addEventListener('click', ()=>{
+// 빠른 입력 버튼 — 날짜(오늘/어제), 금액 증액, 지움
+document.querySelectorAll('[data-qdate]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const d = new Date();
+    d.setDate(d.getDate() + parseInt(b.dataset.qdate));
+    const pad = n=>String(n).padStart(2,'0');
+    document.getElementById('fDate').value = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  });
+});
+document.querySelectorAll('[data-qamt]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const add = parseInt(b.dataset.qamt);
+    const el = document.getElementById('fAmount');
+    if(add===0){ el.value=''; el.focus(); return; }
+    const cur = parseInt(el.value.replace(/[^\d]/g,'')) || 0;
+    el.value = (cur + add).toLocaleString();
+  });
+});
+
+function saveModalTx(keepOpen){
   const date = document.getElementById('fDate').value;
   const amount = parseInt(document.getElementById('fAmount').value.replace(/[^\d]/g,'')) || 0;
   if(!date){ toast('날짜를 입력하세요', 'err'); return; }
   if(amount<=0){ toast('금액을 입력하세요', 'err'); return; }
-  const fUserVal = document.getElementById('fUser').value;
-  if(!fUserVal || fUserVal==='__add__'){ toast('구성원(이니셜)을 선택하세요', 'err'); return; }
   const rec = {
     date, amount, type: modalType,
-    user: fUserVal,
+    user: '',
     cat: document.getElementById('fCat').value,
     method: document.getElementById('fMethod').value,
     desc: document.getElementById('fDesc').value.trim(),
     memo: document.getElementById('fMemo').value.trim()
   };
+  const wasEditing = !!editingId;
   flashSync('dirty');
   if(editingId){
     const t = DATA.transactions.find(x=>x.id===editingId);
@@ -529,9 +445,20 @@ document.getElementById('modalSave').addEventListener('click', ()=>{
   }
   saveData();
   rerenderAll();
-  closeModal();
-  toast(editingId ? '거래 수정됨' : '거래 추가됨', 'ok');
-});
+  if(keepOpen && !wasEditing){
+    // 연속 입력: 날짜·카테고리·결제수단은 유지, 금액·설명·메모만 초기화
+    document.getElementById('fAmount').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fMemo').value = '';
+    document.getElementById('fAmount').focus();
+    toast('추가됨 — 계속 입력하세요', 'ok');
+  } else {
+    closeModal();
+    toast(wasEditing ? '거래 수정됨' : '거래 추가됨', 'ok');
+  }
+}
+document.getElementById('modalSave').addEventListener('click', ()=>saveModalTx(false));
+document.getElementById('modalSaveContinue').addEventListener('click', ()=>saveModalTx(true));
 
 document.getElementById('btnDelete').addEventListener('click', ()=>{
   if(!editingId) return;
@@ -547,23 +474,20 @@ document.getElementById('btnDelete').addEventListener('click', ()=>{
 // ---------- 전체 리렌더 ----------
 function rerenderAll(){
   buildSelectOptions();
-  renderUserManage();
   renderDash();
   renderMonthly();
   renderTxList();
   renderCategory();
-  renderMember();
 }
 
 // ---------- 필터 이벤트 ----------
 function bindFilters(){
-  ['txFilterMonth','txFilterType','txFilterUser','txFilterCat'].forEach(id=>{
+  ['txFilterMonth','txFilterType','txFilterCat'].forEach(id=>{
     document.getElementById(id).addEventListener('change', filterTx);
   });
   document.getElementById('txFilterText').addEventListener('input', filterTx);
   document.getElementById('catFilterMonth').addEventListener('change', renderCategory);
   document.getElementById('catFilterType').addEventListener('change', renderCategory);
-  document.getElementById('memFilterMonth').addEventListener('change', renderMember);
 }
 
 // ---------- 백업/복원 ----------
@@ -598,7 +522,7 @@ document.getElementById('fileImport').addEventListener('change', e=>{
   e.target.value = '';
 });
 document.getElementById('btnReset').addEventListener('click', ()=>{
-  if(!confirm('모든 거래와 구성원을 삭제하고 빈 가계부로 초기화합니다. 계속할까요?')) return;
+  if(!confirm('모든 거래를 삭제하고 빈 가계부로 초기화합니다. 계속할까요?')) return;
   DATA = deepClone(window.INITIAL_DATA);
   saveData(true);
   rerenderAll();
@@ -864,14 +788,8 @@ async function mobileSyncFromGist(){
 
 // 수동 입력 카드 클릭 → 기존 모달
 document.getElementById('imManual').addEventListener('click', ()=>openEditModal(null));
-document.getElementById('imExcel').addEventListener('click', ()=>{
-  if(!ensureUsers()) return;
-  document.getElementById('excelFile').click();
-});
-document.getElementById('imScan').addEventListener('click', ()=>{
-  if(!ensureUsers()) return;
-  document.getElementById('scanFile').click();
-});
+document.getElementById('imExcel').addEventListener('click', ()=>document.getElementById('excelFile').click());
+document.getElementById('imScan').addEventListener('click', ()=>document.getElementById('scanFile').click());
 
 // ---------- 엑셀 업로드 ----------
 let excelRows = [];     // 원본 행
@@ -886,8 +804,7 @@ const FIELD_KEYS = [
   {k:'memo', label:'메모', hints:['메모','memo','note','비고']},
   {k:'type', label:'유형 (수입/지출/이체)', hints:['유형','type','구분']},
   {k:'cat', label:'카테고리', hints:['카테고리','cat','category','분류','용도']},
-  {k:'method', label:'결제수단', hints:['결제수단','method','수단','계좌','카드']},
-  {k:'user', label:'구성원', hints:['구성원','user','이름','회원','이니셜']}
+  {k:'method', label:'결제수단', hints:['결제수단','method','수단','계좌','카드']}
 ];
 
 function detectMapping(headers){
@@ -918,7 +835,7 @@ document.getElementById('excelFile').addEventListener('change', e=>{
       excelRows = rows;
       excelHeaders = Object.keys(rows[0]);
       excelMapping = detectMapping(excelHeaders);
-      excelDefaults = {type:'지출', user:DATA.meta.users[0]||'', method:DATA.meta.methods[0], cat:DATA.meta.categories[0]};
+      excelDefaults = {type:'지출', method:DATA.meta.methods[0], cat:DATA.meta.categories[0]};
       renderExcelPreview();
       document.getElementById('excelPreviewSection').style.display = 'block';
       document.getElementById('excelPreviewSection').scrollIntoView({behavior:'smooth'});
@@ -959,7 +876,6 @@ function renderExcelPreview(){
       <div><label>유형</label><select data-def="type">
         <option value="지출">지출</option><option value="수입">수입</option><option value="이체">이체</option>
       </select></div>
-      <div><label>구성원</label><select data-def="user">${DATA.meta.users.map(u=>`<option value="${u}">${escape(u)}</option>`).join('')}</select></div>
       <div><label>카테고리</label><select data-def="cat">${DATA.meta.categories.map(c=>`<option value="${c}">${escape(c)}</option>`).join('')}</select></div>
       <div><label>결제수단</label><select data-def="method">${DATA.meta.methods.map(m=>`<option value="${m}">${escape(m)}</option>`).join('')}</select></div>
     </div>`;
@@ -1003,7 +919,7 @@ function rowToTx(row){
     date: parseExcelDate(get('date')),
     amount: parseExcelAmount(get('amount')),
     type: String(get('type')||excelDefaults.type||'지출').trim(),
-    user: String(get('user')||excelDefaults.user||DATA.meta.users[0]||'기타').trim(),
+    user: '',
     cat: String(get('cat')||excelDefaults.cat||'기타').trim(),
     method: String(get('method')||excelDefaults.method||'기타').trim(),
     desc: String(get('desc')||'').trim(),
@@ -1028,7 +944,7 @@ function renderExcelTable(){
     <div style="font-size:13px;color:var(--text-muted);margin:10px 0">미리보기 첫 ${total}건 (전체 ${excelRows.length}건) · 날짜·금액이 인식된 행: <b style="color:var(--inc)">${valid}건</b> / 비어있는 행: <b style="color:var(--exp)">${total-valid}건</b></div>
     <div class="excel-preview-wrap">
       <table class="excel-preview-table">
-        <thead><tr><th>#</th><th>날짜</th><th>유형</th><th>금액</th><th>설명</th><th>카테고리</th><th>구성원</th><th>결제수단</th></tr></thead>
+        <thead><tr><th>#</th><th>날짜</th><th>유형</th><th>금액</th><th>설명</th><th>카테고리</th><th>결제수단</th></tr></thead>
         <tbody>${preview.map((t,i)=>{
           const skip = !t.date || !t.amount;
           return `<tr class="${skip?'skip':''}">
@@ -1038,7 +954,6 @@ function renderExcelTable(){
             <td style="text-align:right;font-weight:600">${t.amount?fmtKRW(t.amount):'-'}</td>
             <td>${escape(t.desc)}</td>
             <td>${escape(t.cat)}</td>
-            <td>${escape(t.user)}</td>
             <td>${escape(t.method)}</td>
           </tr>`;
         }).join('')}</tbody>
@@ -1120,8 +1035,6 @@ document.getElementById('sAmount').addEventListener('input', e=>{
 function initScanForm(){
   document.getElementById('sDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('sAmount').value = '';
-  const userOpts = DATA.meta.users.map(u=>`<option value="${u}">${escape(u)}</option>`).join('') + '<option value="__add__">＋ 이니셜 추가…</option>';
-  document.getElementById('sUser').innerHTML = userOpts;
   document.getElementById('sCat').innerHTML = DATA.meta.categories.map(c=>`<option value="${c}">${escape(c)}</option>`).join('');
   document.getElementById('sMethod').innerHTML = DATA.meta.methods.map(m=>`<option value="${m}">${escape(m)}</option>`).join('');
   document.getElementById('sDesc').value = '';
@@ -1137,12 +1050,10 @@ document.getElementById('btnScanAdd').addEventListener('click', ()=>{
   const amount = parseInt(document.getElementById('sAmount').value.replace(/[^\d]/g,'')) || 0;
   if(!date){ toast('날짜를 입력하세요', 'err'); return; }
   if(amount<=0){ toast('금액을 입력하세요', 'err'); return; }
-  const sUserVal = document.getElementById('sUser').value;
-  if(!sUserVal || sUserVal==='__add__'){ toast('구성원(이니셜)을 선택하세요', 'err'); return; }
   const rec = {
     id: DATA.nextId || (Math.max(0, ...DATA.transactions.map(x=>x.id||0)) + 1),
     date, amount, type: scanType,
-    user: sUserVal,
+    user: '',
     cat: document.getElementById('sCat').value,
     method: document.getElementById('sMethod').value,
     desc: document.getElementById('sDesc').value.trim(),
@@ -1154,7 +1065,7 @@ document.getElementById('btnScanAdd').addEventListener('click', ()=>{
   flashSync('dirty');
   saveData();
   rerenderAll();
-  // form 초기화 (날짜·구성원·결제수단은 유지)
+  // form 초기화 (날짜·결제수단은 유지)
   document.getElementById('sAmount').value = '';
   document.getElementById('sDesc').value = '';
   document.getElementById('sMemo').value = '';
@@ -1172,11 +1083,9 @@ function renderScanRecent(){
 
 // ---------- 초기 부트 ----------
 buildSelectOptions();
-renderUserManage();
 bindFilters();
 renderDash();
 renderMonthly();
 renderTxList();
 renderCategory();
-renderMember();
 if(!getSyncConfig().enabled) flashSync('saved');
